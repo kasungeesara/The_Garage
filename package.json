@@ -1,0 +1,38 @@
+{
+  "name": "car_site",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "dev:web": "next dev --webpack",
+    "dev:api": "npm --prefix backend run start:dev",
+    "test:browser:build": "NEXT_DIST_DIR=.next-smoke BACKEND_URL=http://127.0.0.1:4127 next build --webpack",
+    "test:browser": "node scripts/production-smoke.cjs"
+  },
+  "dependencies": {
+    "next": "^16.2.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20.19.39",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.27",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.1",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "sharp": "^0.35.4"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
