@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GarageLogo } from "@/components/layout/garage-logo";
 import { Icon } from "@/components/ui/icons";
 export default function SiteFooter() {
   return (
@@ -6,12 +7,7 @@ export default function SiteFooter() {
       <div className="footer-grid">
         <div>
           <Link className="brand" href="/">
-            <span className="brand-mark">
-              <Icon name="box" />
-            </span>
-            <span>
-              AutoPart<span className="brand-light">Hub</span>
-            </span>
+            <GarageLogo />
           </Link>
           <p>
             The right part for every journey.

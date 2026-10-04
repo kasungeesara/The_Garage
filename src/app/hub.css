@@ -66,11 +66,15 @@ a svg {
   letter-spacing: -1px;
   white-space: nowrap;
 }
-.nav-logo {
+.garage-logo {
   display: block;
-  width: 160px;
-  height: 56px;
+  width: 200px;
+  max-width: 100%;
+  height: auto;
   object-fit: contain;
+}
+.site-header .garage-logo {
+  width: 160px;
 }
 .brand-light {
   font-weight: 400;
@@ -964,7 +968,9 @@ a svg {
 }
 .sidebar > .brand {
   font-size: 21px;
-  padding: 0 9px;
+  padding: 10px;
+  background: var(--hub-navy);
+  border-radius: 10px;
 }
 .sidebar .brand-light {
   color: #9d8000;
@@ -1924,6 +1930,9 @@ td strong {
   }
 }
 @media (max-width: 760px) {
+  .garage-logo {
+    width: 160px;
+  }
   .nav-inner {
     padding: 16px 4%;
     min-height: 80px;

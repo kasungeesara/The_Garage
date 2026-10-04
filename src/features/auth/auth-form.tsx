@@ -2,6 +2,7 @@
 import { api } from "@/lib/api";
 import { auth } from "@/features/auth/api";
 import Link from "next/link";
+import { GarageLogo } from "@/components/layout/garage-logo";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useMarketplace } from "@/providers/marketplace-provider";
@@ -38,12 +39,7 @@ export function AuthForm({ mode }: { mode: keyof typeof titles }) {
       <aside className="auth-story">
         <div>
           <Link className="brand" href="/">
-            <span className="brand-mark">
-              <Icon name="box" />
-            </span>
-            <span>
-              AutoPart<span className="brand-light">Hub</span>
-            </span>
+            <GarageLogo preload />
           </Link>
         </div>
         <div>

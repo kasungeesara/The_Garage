@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link";
-import Image from "next/image";
-import logo from "@/public/logo.png";
+import { GarageLogo } from "@/components/layout/garage-logo";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useMarketplace } from "@/providers/marketplace-provider";
@@ -20,13 +19,7 @@ export function NavBar() {
     <header className="site-header">
       <div className="nav-inner">
         <Link href="/" className="brand">
-          <Image
-            src={logo}
-            alt="The Garage home"
-            className="nav-logo"
-            sizes="160px"
-            preload
-          />
+          <GarageLogo preload />
         </Link>
         <nav
           className={`public-nav ${open ? "is-open" : ""}`}

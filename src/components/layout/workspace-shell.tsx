@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { GarageLogo } from "@/components/layout/garage-logo";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { Icon } from "@/components/ui/icons";
@@ -60,12 +61,7 @@ export function WorkspaceShell({
     <div className={`workspace ${kind === "admin" ? "admin-workspace" : ""}`}>
       <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
         <Link href="/" className="brand">
-          <span className="brand-mark">
-            <Icon name="box" />
-          </span>
-          <span>
-            AutoPart<span className="brand-light">Hub</span>
-          </span>
+          <GarageLogo />
         </Link>
         <p className="sidebar-label">
           {kind === "admin"
