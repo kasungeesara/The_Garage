@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { SubscriptionPanel } from "@/features/subscriptions/dashboard";
 import { useState } from "react";
 import { useMarketplace } from "@/providers/marketplace-provider";
 import { money } from "@/types/marketplace";
@@ -27,6 +28,7 @@ export function SellerOverview() {
           </ButtonLink>
         }
       />
+      <SubscriptionPanel />
       <div className="stats-grid">
         <Stat
           label="Active listings"

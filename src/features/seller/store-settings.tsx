@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMarketplace } from "@/providers/marketplace-provider";
 import { PageHeading, Field, Panel, ButtonLink } from "@/components/ui/kit";
+import { api } from "@/lib/api";
 import { Icon } from "@/components/ui/icons";
 export function StoreSettings({
   onboarding = false,
@@ -12,6 +13,7 @@ export function StoreSettings({
   const { state, update, toast, ready } = useMarketplace();
   const router = useRouter();
   const [step, setStep] = useState(0);
+  const [uploading, setUploading] = useState(false);
   if (!ready) return <div className="container section">Loading your account…</div>;
   if (!state.user) return <div className="container section"><h1>Start selling</h1><p>Sign in or create an account to set up your store.</p><ButtonLink href="/auth/login">Sign in</ButtonLink></div>;
   return (
@@ -26,8 +28,8 @@ export function StoreSettings({
         }
         action={
           !onboarding ? (
-            <ButtonLink href={`/sellers/${state.store.slug}`} secondary>
-              View public store ↗
+            <ButtonLink href={state.sellers.find(s=>s.slug===state.store.slug)?.shop_active ? `/sellers/${state.store.slug}` : '/seller-plans'} secondary>
+              {state.sellers.find(s=>s.slug===state.store.slug)?.shop_active ? 'View public store ↗' : 'Explore Shop Plan ↗'}
             </ButtonLink>
           ) : undefined
         }
@@ -41,6 +43,9 @@ export function StoreSettings({
               const d = new FormData(e.currentTarget);
               const store = {
                 slug: state.store.slug,
+                phone: String(d.get("phone") || ""),
+                whatsapp: String(d.get("whatsapp") || ""),
+                logo: String(d.get("logo") || ""),
                 reference: String(d.get("reference") || state.store.reference || ""),
                 name: String(d.get("name")),
                 city: String(d.get("city")),
@@ -93,6 +98,13 @@ export function StoreSettings({
                 )}
               </select>
             </Field>
+            <Field label="Phone"><input name="phone" type="tel" required defaultValue={state.store.phone || state.user.phone} maxLength={25} /></Field>
+            <Field label="WhatsApp number (include country code)"><input name="whatsapp" type="tel" required defaultValue={state.store.whatsapp || state.user.phone.replace(/^0/, "94")} placeholder="94771234567" maxLength={25} /></Field>
+            <Field label="Shop logo"><input name="logo" type="hidden" defaultValue={state.store.logo || ""} /><input type="file" accept="image/jpeg,image/png,image/webp" onChange={async e => {
+              const file=e.target.files?.[0]; const form=e.currentTarget.form; if(!file || !form)return;
+              if(file.size>5*1024*1024){toast("Maximum logo size is 5 MB");return;}
+              setUploading(true);const reader=new FileReader();reader.onerror=()=>{setUploading(false);toast("Unable to read logo");};reader.onload=async()=>{try{const result=await api<{url:string}>("media",{image:reader.result});(form.elements.namedItem("logo") as HTMLInputElement).value=result.url;toast("Logo uploaded. Save your settings to apply it.");}catch(error){toast(error instanceof Error?error.message:"Logo upload failed");}finally{setUploading(false);}};reader.readAsDataURL(file);
+            }} /><small>JPG, PNG or WebP, up to 5 MB. Preserved when your plan expires.</small></Field>
             <Field label="About your store">
               <textarea
                 name="description"
@@ -116,8 +128,8 @@ export function StoreSettings({
                 </label>
               </>
             )}
-            <button className="btn btn-primary">
-              {onboarding ? "Create seller profile" : "Save store settings"}
+            <button className="btn btn-primary" disabled={uploading}>
+              {uploading ? "Uploading logo…" : onboarding ? "Create seller profile" : "Save store settings"}
               <Icon name="arrow" size={16} />
             </button>
           </form>

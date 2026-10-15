@@ -23,6 +23,7 @@ const menus = {
     ["/seller/reviews", "Reviews", "star"],
     ["/seller/analytics", "Analytics", "chart"],
     ["/seller/settings", "Store settings", "settings"],
+    ["/seller/subscription", "Plan & subscription", "star"],
   ],
   admin: [
     ["/admin", "Overview", "grid"],

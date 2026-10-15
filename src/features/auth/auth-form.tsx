@@ -91,7 +91,8 @@ export function AuthForm({ mode }: { mode: keyof typeof titles }) {
                   } else { await auth.login(email,password); }
                   await refresh();
                   toast(mode === "register" ? "Account created. Welcome!" : "Welcome back.");
-                  router.replace("/dashboard");
+                  const next = new URLSearchParams(window.location.search).get("next");
+                  router.replace(next?.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : "/dashboard");
                 } catch(e) { setError(e instanceof Error ? e.message : "Unable to sign in. Please retry."); }
                 finally { setPending(false); }
               }}

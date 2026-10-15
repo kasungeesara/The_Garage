@@ -24,6 +24,7 @@ export class MarketplaceController {
   await this.db.pool.query('INSERT INTO contacts(id,name,email,topic,message) VALUES($1,$2,$3,$4,$5)',[id,text(d.name,'name',2),email(d.email),text(d.topic,'topic',2,200),text(d.message,'message',10,5000)]);
   return {id};
  }
+
  @Post('listings/:id/view') @Throttle({default:{limit:120,ttl:60000}})
  async view(@Param('id') id:string,@Req() req:Request) {
   const viewer=createHash('sha256').update(`${process.env.VIEW_HASH_SECRET}:${req.ip}:${new Date().toISOString().slice(0,10)}`).digest('hex');
@@ -32,6 +33,7 @@ export class MarketplaceController {
   if(user) await this.db.pool.query(`INSERT INTO recent_views(user_id,listing_id,viewed_at) SELECT $1,l.id,now() FROM listings l JOIN users u ON u.id=l.owner_id WHERE l.id=$2 AND l.status IN ('Published','Sold') AND l.deleted_at IS NULL AND u.status='Active' ON CONFLICT(user_id,listing_id) DO UPDATE SET viewed_at=now()`,[user.id,uuid(id)]);
   return {ok:true};
  }
+ 
  @Post('media') @UseGuards(SessionGuard) @Throttle({default:{limit:20,ttl:60000}})
  async upload(@Req() req:AuthenticatedRequest,@Body() body:unknown) {
   const d=object(body),data=text(d.image,'image',1,7100000);
@@ -52,7 +54,7 @@ export class MarketplaceController {
  @Get('media/:id')
  async media(@Param('id') id:string,@Req() req:Request,@Res() res:Response) {
   const user=await this.sessions.findUser(req.cookies?.[SESSION_COOKIE]);
-  const row=(await this.db.pool.query(`SELECT m.content FROM media m WHERE m.id=$1 AND (m.owner_id=$2 OR $3 OR EXISTS(SELECT 1 FROM listings l JOIN users u ON u.id=l.owner_id WHERE l.status IN ('Published','Sold') AND l.deleted_at IS NULL AND u.status='Active' AND l.data->'images' ? $4))`,[uuid(id),user?.id??null,user?.role==='Admin',`/api/media/${id}`])).rows[0];
+  const row=(await this.db.pool.query(`SELECT m.content FROM media m WHERE m.id=$1 AND (m.owner_id=$2 OR $3 OR EXISTS(SELECT 1 FROM listings l JOIN users u ON u.id=l.owner_id WHERE l.status IN ('Published','Sold') AND l.deleted_at IS NULL AND u.status='Active' AND l.data->'images' ? $4) OR EXISTS(SELECT 1 FROM stores s JOIN users u ON u.id=s.user_id WHERE s.logo=$4 AND s.shop_expires_at>now() AND u.status='Active'))`,[uuid(id),user?.id??null,user?.role==='Admin',`/api/media/${id}`])).rows[0];
   if(!row) throw new NotFoundException('Photo not found');res.set({'Content-Type':'image/jpeg','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}).send(row.content);
  }
  @Get('health') async health() { await this.db.pool.query('SELECT 1');return {status:'ok'}; }

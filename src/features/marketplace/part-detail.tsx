@@ -123,6 +123,7 @@ export function PartDetail({ slug }: { slug: string }) {
               Contact the seller to confirm availability and arrange collection.
             </p>
             <div className="button-row">
+              {part.status === "Published" && <Link className="btn plan-cta" href={`/checkout/${part.id}`}>Review purchase ↗</Link>}
               <a className="btn btn-primary" href="#enquire">
                 <Icon name="chat" size={17} />
                 Enquire about this part
@@ -145,7 +146,7 @@ export function PartDetail({ slug }: { slug: string }) {
               </button>
             </div>
             <div className="seller-mini">
-              <span className="avatar">{seller.initials}</span>
+              <span className="avatar">{seller.logo && seller.shop_active ? <img src={seller.logo} alt={`${seller.name} logo`} width={48} height={48} style={{objectFit:"contain",borderRadius:12}}/> : seller.initials}</span>
               <div>
                 <h3>{seller.name}</h3>
                 <p>
@@ -153,12 +154,12 @@ export function PartDetail({ slug }: { slug: string }) {
                   {seller.rating} · {seller.city}
                 </p>
               </div>
-              <Link
+              {seller.shop_active && <Link
                 href={`/sellers/${seller.slug}`}
                 aria-label="View seller store"
               >
                 <Icon name="arrow" />
-              </Link>
+              </Link>}
             </div>
             <button
               className="text-button"
@@ -169,7 +170,9 @@ export function PartDetail({ slug }: { slug: string }) {
             </button>
             {contact && (
               <div className="notice">
-                Use the enquiry form to contact this seller. Your conversation is private.
+                {seller.phone && <a className="btn btn-secondary" href={`tel:${seller.phone.replace(/[^+0-9]/g,"")}`}>Call seller</a>}
+                {seller.whatsapp && <a className="btn btn-secondary" href={`https://wa.me/${seller.whatsapp.replace(/[^0-9]/g,"")}`} target="_blank" rel="noopener noreferrer">WhatsApp seller ↗</a>}
+                {!seller.phone && !seller.whatsapp && "Use the enquiry form to contact this seller. Your conversation is private."}
               </div>
             )}
             <div id="enquire" style={{ marginTop: 28 }}>
@@ -299,7 +302,7 @@ export function PartDetail({ slug }: { slug: string }) {
 export function SellerStore({ slug }: { slug: string }) {
   const { state } = useMarketplace();
   const seller = findSeller(state, slug);
-  if (!seller)
+  if (!seller || !seller.shop_active)
     return (
       <div className="container section">
         <EmptyState
@@ -314,7 +317,7 @@ export function SellerStore({ slug }: { slug: string }) {
     <>
       <header className="store-hero">
         <div className="container store-heading">
-          <span className="avatar">{seller.initials}</span>
+          <span className="avatar">{seller.logo && seller.shop_active ? <img src={seller.logo} alt={`${seller.name} logo`} width={48} height={48} style={{objectFit:"contain",borderRadius:12}}/> : seller.initials}</span>
           <div>
             {seller.verified && <Badge>Verified</Badge>}
             <h1>{own ? state.store.name : seller.name}</h1>
@@ -322,6 +325,10 @@ export function SellerStore({ slug }: { slug: string }) {
               {own ? state.store.city : seller.city} · Member since{" "}
               {seller.since} · ★ {seller.rating}
             </p>
+            <div className="button-row">
+              {seller.phone && <a className="btn plan-cta" href={`tel:${seller.phone.replace(/[^+0-9]/g,"")}`}>Call shop</a>}
+              {seller.whatsapp && <a className="btn btn-secondary" href={`https://wa.me/${seller.whatsapp.replace(/[^0-9]/g,"")}`} target="_blank" rel="noopener noreferrer">WhatsApp ↗</a>}
+            </div>
             <p style={{ marginTop: 15, maxWidth: 660 }}>
               {own ? state.store.description : seller.description}
             </p>

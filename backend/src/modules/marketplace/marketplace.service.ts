@@ -9,14 +9,15 @@ import { bool, choice, email, object, slug, text, uuid } from './validation';
 export class MarketplaceService {
  constructor(private readonly db: DatabaseService) {}
  async state(user?: PublicUser) {
+  await this.db.pool.query('SELECT expire_shop_plans()');
   const id = user?.id ?? null, admin = user?.role === 'Admin';
   const client = await this.db.pool.connect();
   try {
    await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
    const q = async (sql: string, args: unknown[] = []) => (await client.query(sql, args)).rows;
    const parts = await q(`SELECT l.data || jsonb_build_object('id',l.id,'slug',l.slug,'seller',s.slug,'status',l.status,'featured',l.featured,'views',(SELECT count(*)::int FROM listing_views v WHERE v.listing_id=l.id)) AS data FROM listings l JOIN stores s ON s.user_id=l.owner_id JOIN users u ON u.id=l.owner_id WHERE l.deleted_at IS NULL AND ($2 OR l.owner_id=$1 OR (l.status IN ('Published','Sold') AND u.status='Active')) ORDER BY l.created_at DESC`,[id,admin]);
-   const stores = await q(`SELECT s.slug,s.name,s.city,s.description,s.type,s.verification='Approved' AS verified,extract(year FROM s.created_at)::text AS since,coalesce((SELECT round(avg(r.rating),1)::text FROM reviews r WHERE r.seller_id=s.user_id),'—') AS rating FROM stores s JOIN users u ON u.id=s.user_id WHERE u.status='Active'`);
-   const own = id ? (await q('SELECT slug,name,city,description,type,reference FROM stores WHERE user_id=$1',[id]))[0] : null;
+   const stores = await q(`SELECT s.slug,s.name,s.city,s.description,s.type,s.phone,s.whatsapp,s.logo,(s.shop_expires_at>now()) AS shop_active,s.verification='Approved' AS verified,extract(year FROM s.created_at)::text AS since,coalesce((SELECT round(avg(r.rating),1)::text FROM reviews r WHERE r.seller_id=s.user_id),'—') AS rating FROM stores s JOIN users u ON u.id=s.user_id WHERE u.status='Active'`);
+   const own = id ? (await q('SELECT slug,name,city,description,type,reference,phone,whatsapp,logo FROM stores WHERE user_id=$1',[id]))[0] : null;
    const enquiries = id ? await q(`SELECT e.id,e.listing_id AS "partId",e.buyer_id AS "buyerId",e.seller_id AS "sellerId",l.data->>'title' AS subject,e.status,coalesce((SELECT jsonb_agg(jsonb_build_object('id',m.id,'text',m.text,'from',CASE WHEN m.author_id=e.seller_id THEN 'Seller' ELSE 'You' END,'time',m.created_at) ORDER BY m.created_at,m.id) FROM messages m WHERE m.enquiry_id=e.id),'[]') AS messages FROM enquiries e JOIN listings l ON l.id=e.listing_id WHERE e.buyer_id=$1 OR e.seller_id=$1 ORDER BY e.created_at DESC`,[id]) : [];
    const reviews = await q(`SELECT r.id,s.slug AS seller,r.author_id AS "authorId",u.name,r.rating,r.text,r.reply FROM reviews r JOIN stores s ON s.user_id=r.seller_id JOIN users u ON u.id=r.author_id JOIN users seller ON seller.id=s.user_id WHERE seller.status='Active' ORDER BY r.created_at DESC`);
    const result = {
@@ -63,6 +64,9 @@ export class MarketplaceService {
    const actor=(await c.query('SELECT role,status,email_verified FROM users WHERE id=$1 FOR UPDATE',[user.id])).rows[0];
    if(!actor || actor.status!=='Active') throw new UnauthorizedException('Please sign in');
    user={...user,role:actor.role,emailVerified:actor.email_verified};
+   // Lock seller before any listing row, consistently with subscription updates.
+   const owner=action.startsWith('admin.listing') ? (await c.query('SELECT owner_id FROM listings WHERE id=$1',[uuid(d.id)])).rows[0]?.owner_id : user.id;
+   if(owner) await c.query('SELECT user_id FROM stores WHERE user_id=$1 FOR UPDATE',[owner]);
    switch(action) {
     case 'profile.save': {
      await c.query('UPDATE users SET name=$2,phone=$3,city=$4 WHERE id=$1',[user.id,text(d.name,'name',2),text(d.phone,'phone',7,25),text(d.city,'city',2)]);
@@ -75,6 +79,14 @@ export class MarketplaceService {
      const own=(await c.query('SELECT * FROM stores WHERE user_id=$1',[user.id])).rows[0];
      const reference=text(d.reference ?? own?.reference,'business / identity reference',3,200);
      await c.query(`INSERT INTO stores(user_id,slug,name,city,description,type,reference) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(user_id) DO UPDATE SET name=$3,city=$4,description=$5,type=$6,reference=$7,verification=CASE WHEN stores.name<>$3 OR stores.reference<>$7 OR stores.type<>$6 THEN 'Pending' ELSE stores.verification END`,[user.id,own?.slug ?? `store-${randomUUID()}`,name,city,description,type,reference]);
+     const phone=text(d.phone ?? own?.phone ?? user.phone ?? '', 'phone', 0,25),whatsapp=text(d.whatsapp ?? own?.whatsapp ?? phone,'WhatsApp',0,25).replace(/[^+0-9]/g,'').replace(/^0/,'94'),logo=text(d.logo ?? own?.logo ?? '', 'logo',0,100);
+     for(const number of [phone,whatsapp]) if(number && !/^\+?[0-9 ()-]{7,25}$/.test(number))throw new BadRequestException('Enter a valid phone or WhatsApp number');
+     if(whatsapp && !/^\+?[1-9][0-9]{7,14}$/.test(whatsapp))throw new BadRequestException('Use an international WhatsApp number, e.g. 94771234567');
+     if(logo) {
+      const match=logo.match(/^\/api\/media\/([a-f0-9-]{36})$/);
+      if(!match||!(await c.query('SELECT 1 FROM media WHERE id=$1 AND owner_id=$2',[uuid(match[1]),user.id])).rowCount)throw new BadRequestException('Upload your own shop logo');
+     }
+     await c.query('UPDATE stores SET phone=$2,whatsapp=$3,logo=$4 WHERE user_id=$1',[user.id,phone,whatsapp,logo]);
      await c.query("UPDATE users SET role='Seller' WHERE id=$1 AND role='Customer'",[user.id]); break;
     }
     case 'verification.request': {
@@ -197,6 +209,7 @@ export class MarketplaceService {
    await c.query('COMMIT');return {ok:true};
   } catch(error) {
    await c.query('ROLLBACK');
+   if((error as {code?:string}).code==='P0001') throw new BadRequestException((error as Error).message);
    if((error as {code?:string}).code==='23505') throw new ConflictException('This record already exists');
    if((error as {code?:string}).code==='23503') throw new BadRequestException('Referenced record does not exist');
    throw error;

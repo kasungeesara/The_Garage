@@ -20,3 +20,6 @@ npm run dev
 
 Node.js 22.12+ and PostgreSQL are required. No sample users or default administrator passwords are seeded. Configure SMTP to deliver password-reset emails and optional notifications. Deployment settings and remaining launch decisions are documented in the backend guide.
 # the_garage
+# Seller plans
+
+See [seller plan setup and payment integration status](docs/seller-plans.md) for pricing, subscriptions, product purchase review, migration steps and the pending merchant gateway configuration.

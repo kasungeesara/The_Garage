@@ -14,6 +14,7 @@ export function NavBar() {
     ["/categories", "Categories"],
     ["/brands", "Brands"],
     ["/news", "The journal"],
+    ["/seller-plans", "Seller Plans"],
   ];
   return (
     <header className="site-header">

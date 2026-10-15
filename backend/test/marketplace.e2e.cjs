@@ -26,6 +26,11 @@ test('marketplace persistence, tenant isolation, moderation, recovery and permis
   await assert.rejects(promoteAdmin(db,other.email),/Only one admin account is allowed/);
   await db.query("UPDATE users SET status='Active' WHERE id=$1",[admin.id]);
   const sellerState=(await call('state',undefined,seller.cookie)).data;assert.equal(sellerState.user.role,'Seller');assert.equal(sellerState.store.reference,'REG-12345');
+  assert.equal((await call('subscriptions')).status,401);
+  assert.equal((await call('subscriptions',undefined,buyer.cookie)).status,403);
+  assert.equal((await call('subscriptions',undefined,seller.cookie)).data.plan,'Free');
+  assert.equal((await call('subscriptions/checkout',{},seller.cookie)).status,503);
+  assert.equal((await call('subscriptions/free-listings',{ids:[]},seller.cookie)).status,201);
   assert.equal((await call('state',undefined,buyer.cookie)).data.store.reference,'');
   await ok(admin,'admin.verification',{id:seller.id,status:'Approved',note:'Registration details checked'});
   assert.equal((await call('media',{image:'data:image/jpeg;base64,YWJj'},seller.cookie)).status,400);

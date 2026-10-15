@@ -24,10 +24,10 @@ export type MarketplaceState = {
   verifications: { id: string; name: string; city: string; status: string; reference?: string; note?: string }[];
   audit: { id: string; action: string; time: string }[];
   references: Record<string, string[]>;
-  store: { slug?: string; reference?: string; name: string; city: string; description: string; type: string };
+  store: { phone?:string; whatsapp?:string; logo?:string; slug?: string; reference?: string; name: string; city: string; description: string; type: string };
   preferences: { email: boolean; enquiries: boolean };
   verifiedEmail: boolean;
-  sellers: {slug:string;name:string;city:string;description:string;verified:boolean;initials:string;since:string;rating:string}[];
+  sellers: {phone:string;whatsapp:string;logo:string;shop_active:boolean;slug:string;name:string;city:string;description:string;verified:boolean;initials:string;since:string;rating:string}[];
   analytics: {day:string;views:number}[];
   contacts: {id:string;name:string;email:string;topic:string;message:string;status:string;time:string}[];
 };
